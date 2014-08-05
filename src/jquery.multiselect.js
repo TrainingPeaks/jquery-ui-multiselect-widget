@@ -18,7 +18,12 @@
  *   http://www.gnu.org/licenses/gpl.html
  *
  */
-(function($, undefined) {
+define( 
+    [
+        "jquery",     
+        "jqueryui/widget"
+    ],
+function($, widget) {
 
   var multiselectID = 0;
   var $doc = $(document);
@@ -31,8 +36,9 @@
       height: 175,
       minWidth: 225,
       classes: '',
-      checkAllText: 'Check all',
-      uncheckAllText: 'Uncheck all',
+      checkAllText: 'Select All',
+      uncheckAllText: 'Select None',
+      doneText: 'Done',
       noneSelectedText: 'Select options',
       selectedText: '# selected',
       selectedList: 0,
@@ -41,7 +47,8 @@
       autoOpen: false,
       multiple: true,
       position: {},
-      appendTo: "body"
+      appendTo: "body",
+      preventPosition: false
     },
 
     _create: function() {
@@ -77,16 +84,17 @@
 
         headerLinkContainer = (this.headerLinkContainer = $('<ul />'))
           .addClass('ui-helper-reset')
+          .addClass('mulipleSelect-options')
           .html(function() {
             if(o.header === true) {
-              return '<li><a class="ui-multiselect-all" href="#"><span class="ui-icon ui-icon-check"></span><span>' + o.checkAllText + '</span></a></li><li><a class="ui-multiselect-none" href="#"><span class="ui-icon ui-icon-closethick"></span><span>' + o.uncheckAllText + '</span></a></li>';
+              return '<li><button class="ui-multiselect-all check" ><span>' + o.checkAllText + '</span></button></li><li><button class="ui-multiselect-none check" ><span>' + o.uncheckAllText + '</span></button></li>';
             } else if(typeof o.header === "string") {
               return '<li>' + o.header + '</li>';
             } else {
               return '';
             }
           })
-          .append('<li class="ui-multiselect-close"><a href="#" class="ui-multiselect-close"><span class="ui-icon ui-icon-circle-close"></span></a></li>')
+          .append('<li class="ui-multiselect-close"><button  class="ui-multiselect-close check">' + o.doneText + '</button></li>')
           .appendTo(header),
 
         checkboxContainer = (this.checkboxContainer = $('<ul />'))
@@ -124,69 +132,84 @@
     },
 
     refresh: function(init) {
-      var el = this.element;
-      var o = this.options;
-      var menu = this.menu;
-      var checkboxContainer = this.checkboxContainer;
-      var optgroups = [];
-      var html = "";
-      var id = el.attr('id') || multiselectID++; // unique ID for the label & option tags
+        var el = this.element;
+        var o = this.options;
+        var menu = this.menu;
+        var checkboxContainer = this.checkboxContainer;
+        var optgroups = [];
+        var html = "";
+        var id = el.attr('id') || multiselectID++; // unique ID for the label & option tags
 
-      // build items
-      el.find('option').each(function(i) {
-        var $this = $(this);
-        var parent = this.parentNode;
-        var description = this.innerHTML;
-        var title = this.title;
-        var value = this.value;
-        var inputID = 'ui-multiselect-' + (this.id || id + '-option-' + i);
-        var isDisabled = this.disabled;
-        var isSelected = this.selected;
-        var labelClasses = [ 'ui-corner-all' ];
-        var liClasses = (isDisabled ? 'ui-multiselect-disabled ' : ' ') + this.className;
-        var optLabel;
+        el.find('optgroup').each(function(index, item) {
+            var parent = item.parentNode;
 
-        // is this an optgroup?
-        if(parent.tagName === 'OPTGROUP') {
-          optLabel = parent.getAttribute('label');
+            var headerClasses = ['ui-multiselect-optgroup-label'];
 
-          // has this optgroup been added already?
-          if($.inArray(optLabel, optgroups) === -1) {
-            html += '<li class="ui-multiselect-optgroup-label ' + parent.className + '"><a href="#">' + optLabel + '</a></li>';
-            optgroups.push(optLabel);
-          }
-        }
+            var isNestedOption = false;
+            if(parent.tagName === 'OPTGROUP') {
+                isNestedOption = true;
+                headerClasses.push("ui-multiselect-subHeader");
+            }
 
-        if(isDisabled) {
-          labelClasses.push('ui-state-disabled');
-        }
+            optLabel = item.getAttribute('label');
 
-        // browsers automatically select the first option
-        // by default with single selects
-        if(isSelected && !o.multiple) {
-          labelClasses.push('ui-state-active');
-        }
+            // has this optgroup been added already?
+            if($.inArray(optLabel, optgroups) === -1) {
+                html += '<li class="' + headerClasses.join(" ") + ' ' + item.className + '"><a >' + optLabel + '</a></li>';
+                optgroups.push(optLabel);
+            }
 
-        html += '<li class="' + liClasses + '">';
+            
+            $(item).find('> option').each(function(i)
+            {
+                var $this = $(this);
+                
+                var description = this.innerHTML;
+                var title = this.title;
+                var value = this.value;
+                var inputID = 'ui-multiselect-' + (this.id || id + '-option-' + i);
+                var isDisabled = this.disabled;
+                var isSelected = this.selected;
+                var labelClasses = [ 'ui-corner-all'];
+                var disabledCSS = isDisabled ? 'ui-multiselect-disabled ' : '';
+                var liClasses = [disabledCSS, this.className];
+                var optLabel;
 
-        // create the label
-        html += '<label for="' + inputID + '" title="' + title + '" class="' + labelClasses.join(' ') + '">';
-        html += '<input id="' + inputID + '" name="multiselect_' + id + '" type="' + (o.multiple ? "checkbox" : "radio") + '" value="' + value + '" title="' + title + '"';
+                if(isNestedOption) {
+                    liClasses.push("ui-multiselect-nested");
+                } 
 
-        // pre-selected?
-        if(isSelected) {
-          html += ' checked="checked"';
-          html += ' aria-selected="true"';
-        }
+                if(isDisabled) {
+                    labelClasses.push('ui-state-disabled');
+                }
 
-        // disabled?
-        if(isDisabled) {
-          html += ' disabled="disabled"';
-          html += ' aria-disabled="true"';
-        }
+                // browsers automatically select the first option
+                // by default with single selects
+                if(isSelected && !o.multiple) {
+                  labelClasses.push('ui-state-active');
+                }
 
-        // add the title and close everything off
-        html += ' /><span>' + description + '</span></label></li>';
+                html += '<li class="' + liClasses.join(" ") + '">';
+
+                // create the label
+                html += '<label for="' + inputID + '" title="' + title + '" class="' + labelClasses.join(' ') + '">';
+                html += '<input id="' + inputID + '" name="multiselect_' + id + '" type="' + (o.multiple ? "checkbox" : "radio") + '" value="' + value + '" title="' + title + '"';
+
+                // pre-selected?
+                if(isSelected) {
+                  html += ' checked="checked"';
+                  html += ' aria-selected="true"';
+                }
+
+                // disabled?
+                if(isDisabled) {
+                  html += ' disabled="disabled"';
+                  html += ' aria-disabled="true"';
+                }
+
+                // add the title and close everything off
+                html += ' /><span>' + description + '</span></label></li>';
+            });
       });
 
       // insert into the DOM
@@ -290,7 +313,7 @@
       });
 
       // header links
-      this.header.delegate('a', 'click.multiselect', function(e) {
+      this.header.delegate('button', 'click.multiselect', function(e) {
         // close link
         if($(this).hasClass('ui-multiselect-close')) {
           self.close();
@@ -666,8 +689,11 @@
 
     position: function() {
       var o = this.options;
-
-      // use the position utility if it exists and options are specifified
+        if(o.preventPosition)
+        {
+            return;
+        }
+      // // use the position utility if it exists and options are specifified
       if($.ui.position && !$.isEmptyObject(o.position)) {
         o.position.of = o.position.of || this.button;
 
@@ -696,10 +722,13 @@
           menu.find('div.ui-multiselect-header')[value ? 'show' : 'hide']();
           break;
         case 'checkAllText':
-          menu.find('a.ui-multiselect-all span').eq(-1).text(value);
+          menu.find('button.ui-multiselect-all span').eq(-1).text(value);
           break;
         case 'uncheckAllText':
-          menu.find('a.ui-multiselect-none span').eq(-1).text(value);
+          menu.find('button.ui-multiselect-none span').eq(-1).text(value);
+          break;
+        case 'doneText':
+          menu.find('button.ui-multiselect-close span').eq(-1).text(value);
           break;
         case 'height':
           menu.find('ul').last().height(parseInt(value, 10));
@@ -732,4 +761,4 @@
     }
   });
 
-})(jQuery);
+});

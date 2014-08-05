@@ -13,15 +13,20 @@
  *   http://www.gnu.org/licenses/gpl.html
  *
  */
-(function($) {
+ define(
+    [
+        "jquery",
+        "jqueryui/widget"
+    ],
+function($, widget) {
   var rEscape = /[\-\[\]{}()*+?.,\\\^$|#\s]/g;
 
   $.widget('ech.multiselectfilter', {
 
     options: {
-      label: 'Filter:',
+      label: '',
       width: null, /* override default width set in css file (px). null will inherit */
-      placeholder: 'Enter keywords',
+      placeholder: 'Search',
       autoReset: false
     },
 
@@ -34,9 +39,10 @@
 
       // store header; add filter class so the close/check all/uncheck all links can be positioned correctly
       var header = (this.header = instance.menu.find('.ui-multiselect-header').addClass('ui-multiselect-hasfilter'));
+      var selectOptions = (this.selectOptions = instance.menu.find('.mulipleSelect-options'));
 
       // wrapper elem
-      var wrapper = (this.wrapper = $('<div class="ui-multiselect-filter">' + (opts.label.length ? opts.label : '') + '<input placeholder="'+opts.placeholder+'" type="search"' + (/\d/.test(opts.width) ? 'style="width:'+opts.width+'px"' : '') + ' /></div>').prependTo(this.header));
+      var wrapper = (this.wrapper = $('<div class="ui-multiselect-filter">' + (opts.label.length ? opts.label : '') + '<input placeholder="'+opts.placeholder+'" type="search"' + (/\d/.test(opts.width) ? 'style="width:'+opts.width+'px"' : '') + ' /></div>').appendTo(this.selectOptions));
 
       // reference to the actual inputs
       this.inputs = instance.menu.find('input[type="checkbox"], input[type="radio"]');
@@ -171,4 +177,4 @@
     }
   });
 
-})(jQuery);
+});
