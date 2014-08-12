@@ -114,13 +114,21 @@ function($, widget) {
       var term = $.trim(this.input[0].value.toLowerCase()),
 
       // speed up lookups
-      rows = this.rows, inputs = this.inputs, cache = this.cache;
+      rows = this.rows;
 
       if(!term) {
         rows.show();
       } else {
         rows.hide();
+        this._showMatchingRows(e, rows, term);
+      }
 
+      this._showOptionGroupsWithVisibleChildren();
+    },
+
+    _showMatchingRows: function(e, rows, term)
+    {
+        var inputs = this.inputs, cache = this.cache;
         var regex = new RegExp(term.replace(rEscape, "\\$&"), 'gi');
 
         this._trigger("filter", e, $.map(cache, function(v, i) {
@@ -131,16 +139,30 @@ function($, widget) {
 
           return null;
         }));
-      }
+    },
 
-      // show/hide optgroups
-      this.instance.menu.find(".ui-multiselect-optgroup-label").each(function() {
+    _showOptionGroupsWithVisibleChildren: function()
+    {
+      // show/hide optgroup subheaders if they contain any visible items
+      this.instance.menu.find(".ui-multiselect-optgroup-label.ui-multiselect-subHeader").each(function() {
         var $this = $(this);
-        var isVisible = $this.nextUntil('.ui-multiselect-optgroup-label').filter(function() {
+
+        var numberOfVisibleChildren = $this.nextUntil('.ui-multiselect-optgroup-label').filter(function() {
           return $.css(this, "display") !== 'none';
         }).length;
 
-        $this[isVisible ? 'show' : 'hide']();
+        $this.toggle(numberOfVisibleChildren > 0);
+      });
+
+      // show/hide top level optgroups if they contain any visible items or subheaders
+      this.instance.menu.find(".ui-multiselect-optgroup-label:not(.ui-multiselect-subHeader)").each(function() {
+        var $this = $(this);
+
+        var numberOfVisibleChildren = $this.nextUntil('.ui-multiselect-optgroup-label:not(.ui-multiselect-subHeader)').filter(function() {
+          return $.css(this, "display") !== 'none';
+        }).length;
+
+        $this.toggle(numberOfVisibleChildren > 0);
       });
     },
 
@@ -153,17 +175,8 @@ function($, widget) {
       this.rows = this.instance.menu.find(".ui-multiselect-checkboxes li:not(.ui-multiselect-optgroup-label)");
 
       // cache
-      this.cache = this.element.children().map(function() {
-        var elem = $(this);
-
-        // account for optgroups
-        if(this.tagName.toLowerCase() === "optgroup") {
-          elem = elem.children();
-        }
-
-        return elem.map(function() {
-          return this.innerHTML.toLowerCase();
-        }).get();
+      this.cache = this.rows.map(function() {
+        return $(this).text().toLowerCase();
       }).get();
     },
 
