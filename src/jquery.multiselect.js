@@ -159,7 +159,7 @@ function($, widget) {
                 optgroups.push(optLabel);
             }
 
-            
+            var optNum = index;
             $(item).find('> option').each(function(i)
             {
                 var $this = $(this);
@@ -167,7 +167,7 @@ function($, widget) {
                 var description = this.innerHTML;
                 var title = this.title;
                 var value = this.value;
-                var inputID = 'ui-multiselect-' + (this.id || id + '-option-' + i);
+                var inputID = 'ui-multiselect-' + (this.id || id + '-option-' + optNum + i);
                 var isDisabled = this.disabled;
                 var isSelected = this.selected;
                 var labelClasses = [ 'ui-corner-all'];
